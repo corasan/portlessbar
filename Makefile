@@ -4,7 +4,7 @@ APP_NAME = portlessbar
 ARCHIVE_PATH = build/$(APP_NAME).xcarchive
 EXPORT_PATH = build/export
 PKG_PATH = build/$(APP_NAME).pkg
-TEAM_ID ?= $(TEAM_ID)
+TEAM_ID ?= $(APPLE_TEAM_ID)
 INSTALLER_IDENTITY ?= $(INSTALLER_IDENTITY)
 
 PBXPROJ = $(PROJECT).xcodeproj/project.pbxproj
