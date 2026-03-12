@@ -73,9 +73,19 @@ struct MenuContent: View {
                 .padding(.vertical, 24)
             } else {
                 ScrollView {
-                    VStack(spacing: 1) {
-                        ForEach(store.routes) { route in
-                            RouteRow(route: route)
+                    VStack(spacing: 2) {
+                        ForEach(store.groupedRoutes, id: \.project) { group in
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(group.project)
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(.secondary)
+                                    .padding(.horizontal, 14)
+                                    .padding(.top, 8)
+                                    .padding(.bottom, 4)
+                                ForEach(group.routes) { route in
+                                    RouteRow(route: route)
+                                }
+                            }
                         }
                     }
                     .padding(.vertical, 6)
@@ -170,3 +180,4 @@ struct RouteRow: View {
         }
     }
 }
+

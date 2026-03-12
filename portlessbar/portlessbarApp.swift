@@ -9,6 +9,7 @@ struct PortlessRoute: Identifiable {
     let port: Int
     let pid: Int
     let url: String
+    let project: String // derived from process cwd
 
     var displayName: String { id }
     var isAlive: Bool { kill(Int32(pid), 0) == 0 }
@@ -20,6 +21,14 @@ struct PortlessRoute: Identifiable {
 final class PortlessStore: ObservableObject {
     @Published var routes: [PortlessRoute] = []
     @Published var proxyRunning: Bool = false
+
+    /// Routes grouped by project name, sorted alphabetically.
+    var groupedRoutes: [(project: String, routes: [PortlessRoute])] {
+        let grouped = Dictionary(grouping: routes, by: \.project)
+        return grouped.keys.sorted().map { key in
+            (project: key, routes: grouped[key]!)
+        }
+    }
 
     private let stateDir: URL
     private let routesFile: URL
@@ -55,8 +64,29 @@ final class PortlessStore: ObservableObject {
 
         return entries.map { entry in
             let url = "\(scheme)://\(entry.hostname):\(proxyPort)"
-            return PortlessRoute(id: entry.hostname, port: entry.port, pid: entry.pid, url: url)
+            let project = Self.projectName(forPid: entry.pid)
+            return PortlessRoute(id: entry.hostname, port: entry.port, pid: entry.pid, url: url, project: project)
         }.sorted { $0.id < $1.id }
+    }
+
+    /// Resolve the working directory of a PID via `lsof -p <pid> -Fn` and extract the project folder name.
+    private static func projectName(forPid pid: Int) -> String {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/sbin/lsof")
+        task.arguments = ["-a", "-p", "\(pid)", "-d", "cwd", "-Fn"]
+        let pipe = Pipe()
+        task.standardOutput = pipe
+        task.standardError = FileHandle.nullDevice
+        guard (try? task.run()) != nil else { return "Unknown" }
+        task.waitUntilExit()
+
+        let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+        // lsof output lines starting with 'n' contain the path
+        guard let line = output.components(separatedBy: "\n").first(where: { $0.hasPrefix("n") }) else {
+            return "Unknown"
+        }
+        let path = String(line.dropFirst()) // drop the 'n' prefix
+        return URL(fileURLWithPath: path).lastPathComponent
     }
 
     private func readProxyPort() -> Int {
