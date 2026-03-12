@@ -125,12 +125,14 @@ struct MenuContent: View {
 struct RouteRow: View {
     let route: PortlessRoute
     @State private var isHovered = false
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         Button {
             if let url = URL(string: route.url) {
                 NSWorkspace.shared.open(url)
             }
+            dismiss()
         } label: {
             HStack(spacing: 10) {
                 // Status dot
